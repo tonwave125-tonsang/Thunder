@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Simple Mobile AR Lab - Thunderstorm Warning</title>
+
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+    }
+
+    #top-panel {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      width: min(92vw, 560px);
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.70);
+      color: white;
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.4;
+      backdrop-filter: blur(4px);
+    }
+
+    #controls {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 18px;
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 12px;
+    }
+
+    button {
+      min-width: 145px;
+      min-height: 48px;
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    #show-button { background: #ffffff; color: #111111; }
+    #status-button { background: #ffd54f; color: #111111; }
+
+    .hint {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      opacity: 0.82;
+    }
+  </style>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const marker = document.querySelector('#hiro-marker');
+      const stormGroup = document.querySelector('#storm-group');
+      const clouds = document.querySelectorAll('.storm-cloud');
+      const lightning = document.querySelector('#lightning');
+      const rain = document.querySelector('#rain-group');
+      const arLabel = document.querySelector('#ar-label');
+      const topPanel = document.querySelector('#top-panel');
+      const showButton = document.querySelector('#show-button');
+      const statusButton = document.querySelector('#status-button');
+
+      let visible = true;
+      let warning = true;
+
+      marker.addEventListener('markerFound', () => {
+        topPanel.innerHTML = 'พบ Hiro Marker แล้ว — แสดงภาพฝนฟ้าคะนอง<span class="hint">ใช้ปุ่มด้านล่างเพื่อซ่อนภาพหรือเปลี่ยนสถานะคำเตือน</span>';
+      });
+
+      marker.addEventListener('markerLost', () => {
+        topPanel.innerHTML = 'เล็งกล้องไปที่ Hiro Marker<span class="hint">วาง Marker ให้ราบ มีแสงเพียงพอ และเห็นกรอบดำครบทั้งสี่ด้าน</span>';
+      });
+
+      showButton.addEventListener('click', () => {
+        visible = !visible;
+        stormGroup.setAttribute('visible', visible);
+        showButton.textContent = visible ? 'ซ่อนภาพพายุ' : 'แสดงภาพพายุ';
+      });
+
+      statusButton.addEventListener('click', () => {
+        warning = !warning;
+
+        if (warning) {
+          clouds.forEach(el => el.setAttribute('color', '#455a64'));
+          lightning.setAttribute('visible', true);
+          rain.setAttribute('visible', true);
+          arLabel.setAttribute('value', 'THUNDERSTORM WARNING\nHEAVY RAIN & LIGHTNING');
+          arLabel.setAttribute('color', '#ffeb3b');
+          statusButton.textContent = 'เปลี่ยนเป็นเฝ้าระวัง';
+          topPanel.innerHTML = '⚠️ คำเตือน: มีฝนฟ้าคะนอง<span class="hint">ระวังฝนตกหนัก ลมแรง และฟ้าผ่า</span>';
+        } else {
+          clouds.forEach(el => el.setAttribute('color', '#90a4ae'));
+          lightning.setAttribute('visible', false);
+          rain.setAttribute('visible', true);
+          arLabel.setAttribute('value', 'WEATHER WATCH\nRAIN POSSIBLE');
+          arLabel.setAttribute('color', '#ffffff');
+          statusButton.textContent = 'เปิดคำเตือนพายุ';
+          topPanel.innerHTML = 'สถานะเฝ้าระวังสภาพอากาศ<span class="hint">มีโอกาสเกิดฝน โปรดติดตามสภาพอากาศ</span>';
+        }
+      });
+    });
+  </script>
+</head>
+
+<body>
+  <div id="top-panel">
+    เล็งกล้องไปที่ Hiro Marker
+    <span class="hint">อนุญาตให้เว็บไซต์ใช้กล้องเมื่อเบราว์เซอร์ถาม</span>
+  </div>
+
+  <div id="controls">
+    <button id="show-button" type="button">ซ่อนภาพพายุ</button>
+    <button id="status-button" type="button">เปลี่ยนเป็นเฝ้าระวัง</button>
+  </div>
+
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true; antialias: true; colorManagement: true"
+    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false"
+  >
+    <a-marker
+      id="hiro-marker"
+      preset="hiro"
+      emitevents="true"
+      smooth="true"
+      smooth-count="8"
+      smooth-tolerance="0.01"
+      smooth-threshold="3"
+    >
+      <a-entity id="storm-group" position="0 0.10 0">
+        <!-- ฐานพื้นหลัง เพื่อให้ภาพพายุมองเห็นชัด -->
+        <a-plane
+          position="0 0.01 0"
+          rotation="-90 0 0"
+          width="1.45"
+          height="1.05"
+          color="#0d1b2a"
+          opacity="0.78"
+          material="transparent: true; side: double"
+        ></a-plane>
+
+        <!-- กลุ่มก้อนเมฆ -->
+        <a-sphere class="storm-cloud" position="-0.33 0.62 0" scale="0.55 0.30 0.30" color="#455a64"></a-sphere>
+        <a-sphere class="storm-cloud" position="0.00 0.72 0" scale="0.70 0.38 0.36" color="#455a64"></a-sphere>
+        <a-sphere class="storm-cloud" position="0.34 0.61 0" scale="0.55 0.30 0.30" color="#455a64"></a-sphere>
+        <a-sphere class="storm-cloud" position="0.02 0.55 0" scale="0.95 0.28 0.34" color="#455a64"></a-sphere>
+
+        <!-- สายฟ้า -->
+        <a-entity id="lightning" position="0.05 0.22 0.03">
+          <a-triangle
+            vertex-a="-0.08 0.28 0"
+            vertex-b="0.13 0.28 0"
+            vertex-c="-0.02 -0.02 0"
+            color="#ffeb3b"
+            material="emissive: #ffeb3b; emissiveIntensity: 1"
+          ></a-triangle>
+          <a-triangle
+            vertex-a="-0.02 0.03 0"
+            vertex-b="0.14 0.03 0"
+            vertex-c="-0.12 -0.34 0"
+            color="#ffc107"
+            material="emissive: #ffc107; emissiveIntensity: 1"
+          ></a-triangle>
+        </a-entity>
+
+        <!-- เม็ดฝน -->
+        <a-entity id="rain-group">
+          <a-box position="-0.45 0.29 0.02" width="0.025" height="0.24" depth="0.018" rotation="0 0 -18" color="#4fc3f7"></a-box>
+          <a-box position="-0.27 0.18 0.02" width="0.025" height="0.24" depth="0.018" rotation="0 0 -18" color="#4fc3f7"></a-box>
+          <a-box position="-0.08 0.26 0.02" width="0.025" height="0.24" depth="0.018" rotation="0 0 -18" color="#4fc3f7"></a-box>
+          <a-box position="0.20 0.17 0.02" width="0.025" height="0.24" depth="0.018" rotation="0 0 -18" color="#4fc3f7"></a-box>
+          <a-box position="0.40 0.27 0.02" width="0.025" height="0.24" depth="0.018" rotation="0 0 -18" color="#4fc3f7"></a-box>
+        </a-entity>
+
+        <!-- ข้อความเตือน -->
+        <a-text
+          id="ar-label"
+          value="THUNDERSTORM WARNING\nHEAVY RAIN & LIGHTNING"
+          position="0 1.12 0"
+          rotation="-90 0 0"
+          align="center"
+          width="2.5"
+          color="#ffeb3b"
+          side="double"
+        ></a-text>
+      </a-entity>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+</body>
+</html>
